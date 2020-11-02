@@ -1,0 +1,19 @@
+function draw_kinematics(z, p)
+% Draw simple model to validate kinematics
+
+    kp = keypoints_climber(z, p);
+    
+    axis([-.2, 1.5, -.2, 3])
+    axis equal
+    h_ground = plot([-1 1],[0 0],'k-','LineWidth',3);
+    hold on
+    v_rope = plot([0 0], [0 3], 'k-', 'LineWidth',5);
+    
+    AB = plot([kp(1,1) kp(2,1)], [kp(1,2) kp(2,2)], 'Linewidth
+    
+    
+
+
+end
+
+
