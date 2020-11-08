@@ -10,12 +10,13 @@ syms t y dy ddy th1 dth1 ddth1 th2 dth2 ddth2 tau1 tau2...
     m_AB m_BC m_CE m_EG m_DF m_FH ...                            
     m_tibloc m_motor ...                                             
     I_AB I_BC I_CE I_EG I_DF I_FH I_motor I_rm1 I_rm2 Nm1 Nm2 real
-syms phi_sym real  % temporary angle var until we can solve numerically (see diagram)
+% syms phi_sym real  % temporary angle var until we can solve numerically (see diagram)
+syms phi dphi ddphi real    % allow for open chain kinematics; solve for phi later (see diagram)
 
 % Group them for later use.
-q   = [y; th1; th2];        % generalized coordinates
-dq  = [dy; dth1; dth2];     % first time derivatives
-ddq = [ddy; ddth1; ddth2];  % second time derivatives
+q   = [y; th1; th2; phi];        % generalized coordinates
+dq  = [dy; dth1; dth2; dphi];     % first time derivatives
+ddq = [ddy; ddth1; ddth2; ddphi];  % second time derivatives
 u   = [tau1, tau2];         % control forces and moments
 Fc  = [Fx_foot, Fy_foot, Fx_hand, Fy_hand]; % constraint forces and moments
 
@@ -46,23 +47,8 @@ e2hat = @(th) -sin(th)*ihat + cos(th)*jhat;
 ddt = @(r) jacobian(r,[q;dq])*[dq;ddq]; 
 
 % Define vectors to key points.
-psi = pi - delta - phi_sym;
-rH = y*jhat;
-rF = rH + L_FH * e1hat(th1 + phi_sym);
-rG = rH + L_GH * e1hat(th1 + phi_sym);
-rD = rF + L_DF * e1hat(th1 + th2 + phi_sym);
-rE = rG + L_EG * e1hat(th1 + th2 + phi_sym);
-rC = rE + L_CE * e1hat(th1 + phi_sym);
-rB = rC + L_BC * e1hat(phi_sym);
-rA = rB + L_AB * e2hat(psi);
-
-% Solve for psi -- quadrilateral with 3 known sides and 2 known angles
-% take second solution after verifying -- TODO, might be a cleaner way
-phi_solved = solve(rA(1) == 0, phi_sym, 'Real', true);  
-phi = simplify(phi_solved(2));
-
-% substitute in for all of the key vectors already defined
 psi = pi - delta - phi;
+rH = y*jhat;
 rF = rH + L_FH * e1hat(th1 + phi);
 rG = rH + L_GH * e1hat(th1 + phi);
 rD = rF + L_DF * e1hat(th1 + th2 + phi);
@@ -71,8 +57,24 @@ rC = rE + L_CE * e1hat(th1 + phi);
 rB = rC + L_BC * e1hat(phi);
 rA = rB + L_AB * e2hat(psi);
 
+%%% MOVE THIS ELSEWHERE
+% Solve for psi -- quadrilateral with 3 known sides and 2 known angles
+% take second solution after verifying -- TODO, might be a cleaner way
+phi_solved = solve(rA(1) == 0, phi, 'Real', true);  
+phi_solved = simplify(phi_solved(2));
 % derivative of phi for convenient use
-dphi = ddt(phi);
+dphi_solved = ddt(phi_solved);
+
+% % substitute in for all of the key vectors already defined
+% psi = pi - delta - phi;
+% rF = rH + L_FH * e1hat(th1 + phi);
+% rG = rH + L_GH * e1hat(th1 + phi);
+% rD = rF + L_DF * e1hat(th1 + th2 + phi);
+% rE = rG + L_EG * e1hat(th1 + th2 + phi);
+% rC = rE + L_CE * e1hat(th1 + phi);
+% rB = rC + L_BC * e1hat(phi);
+% rA = rB + L_AB * e2hat(psi);
+
 
 % Define COMs
 rcmFH = rH + c_FH * e1hat(th1 + phi);
@@ -135,6 +137,8 @@ T_r1 = (1/2) * I_rm1 * (dphi + Nm1*dth1)^2;
 T_r2 = (1/2) * I_rm2 * (dphi + dth1 + Nm2*dth2)^2;
 % TODO - check angle signs RHR above ??
 
+%%
+
 % Define potential energies. See Lecture 6 formulas for gravitational 
 % potential energy of rigid bodies and elastic potential energies of
 % energy storage elements.
@@ -149,8 +153,8 @@ V_m2 = m_motor * g * dot(rE, -jhat);
 
 
 % Sum KE and PE terms
-T = T_FH + T_DF + T_EG + T_CE + T_BC + T_AB + T_r1 + T_r2 + T_m1 + T_m2;
-V = V_FH + V_DF + V_EG + V_CE + V_BC + V_AB + V_m1 + V_m2;
+T = simplify(T_FH + T_DF + T_EG + T_CE + T_BC + T_AB + T_r1 + T_r2 + T_m1 + T_m2);
+V = simplify(V_FH + V_DF + V_EG + V_CE + V_BC + V_AB + V_m1 + V_m2);
 
 % Define contributions to generalized forces.  See Lecture 6 formulas for
 % contributions to generalized forces.
@@ -164,8 +168,8 @@ Qtau = Qtau1 + Qtau2;
 % contributions.
 Q = QF + Qtau;
 
-% Calculate rCOM, the location of the center of mass
-rCOM = (m_AB*rcmAB + m_BC*rcmBC + m_CE*rcmCE + m_EG*rcmEG + m_DF*rcmDF + m_FH*rcmFH ...
+% Calculate rcm, the location of the center of mass
+rcm = (m_AB*rcmAB + m_BC*rcmBC + m_CE*rcmCE + m_EG*rcmEG + m_DF*rcmDF + m_FH*rcmFH ...
         + m_motor*rC + m_motor*rE)/...
         (m_AB + m_BC + m_CE + m_EG + m_DF + m_FH + 2*m_motor);
 
@@ -183,22 +187,19 @@ eom = ddt(jacobian(L,dq)') - jacobian(L,q)' - Q;  % form the dynamics equations
 size(eom)
 
 %%% Rearrange Equations of Motion. 
-A = jacobian(eom,ddq);
-b = A*ddq - eom;
-
-%%
+A = simplify(jacobian(eom,ddq));
+b = simplify(A*ddq - eom);
 
 %%% Write functions to evaluate dynamics, etc...
 z = sym(zeros(length([q;dq]),1)); % initialize the state vector
-z(1:3,1) = q;  
-z(4:6,1) = dq;
+z(1:4,1) = q;  
+z(5:8,1) = dq;
 
 %%
 
 % Write functions to a separate folder because we don't usually have to see them
 directory = './AutoDerived/';  % changed to run from parent dir
-% Write a function to evaluate the energy of the system given the current state and parameters
-matlabFunction(E,'file',[directory 'energy_' name],'vars',{z p});
+
 % Write a function to evaluate the A matrix of the system given the current state and parameters
 matlabFunction(A,'file',[directory 'A_' name],'vars',{z p});
 % Write a function to evaluate the b vector of the system given the current state, current control, and parameters
@@ -210,6 +211,13 @@ matlabFunction(C,'file',[directory 'C_' name],'vars',{z u p});
 matlabFunction(dC,'file',[directory 'dC_' name],'vars',{z u p});
 
 % Write a function to evaluate the X and Y coordinates and speeds of the center of mass given the current state and parameters
-drcm = ddt(rcm);             % Calculate center of mass velocity vector
+drcm = simplify(ddt(rcm));             % Calculate center of mass velocity vector
 COM = [rcm(1:2); drcm(1:2)]; % Concatenate x and y coordinates and speeds of center of mass in array
 matlabFunction(COM,'file',[directory 'COM_' name],'vars',{z p});
+
+% Write a function to evaluate the energy of the system given the current state and parameters
+matlabFunction(E,'file',[directory 'energy_' name],'vars',{z p});
+%%
+% Write a function to evaluate phi and dphi with the hand constraint x=0
+phi_sol = [phi_solved dphi_solved]';
+matlabFunction(phi_sol,'file',[directory 'phi_solved_' name],'vars',{z p});

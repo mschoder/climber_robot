@@ -103,3 +103,16 @@ function u = control_laws(t,z,ctrl,iphase)
     end
 
 end
+
+%% Hand Constraint - Solve for phi
+function phi = get_phi(z,p)
+    % Solve for psi -- quadrilateral with 3 known sides and 2 known angles
+    % take second solution after verifying -- TODO, might be a cleaner way
+    % phi_solved = solve(rA(1) == 0, phi_sym, 'Real', true);  
+    % phi = simplify(phi_solved(2));
+    th1 = z(2);
+    th2 = z(3); 
+    phi = z(4);
+    
+    
+end

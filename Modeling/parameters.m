@@ -12,7 +12,7 @@ delta = 2.3562;           % fixed shoulder angle, 3*pi/4
 
 % Lengths
 L_AB = 0.150;
-L_BC = 0.060;
+L_BC = 0.083;
 L_CD = 0.011;
 L_DE = 0.031;
 L_CE = 0.042;
