@@ -20,19 +20,24 @@ function [cineq, ceq] = constraints(x,z0,p)
 % provided using an anonymous function, just as we use anonymous
 % functions with ode45().
 
-    tf = x(1); ctrl.tf = x(2); ctrl.T  = x(3:end);
+    tf = x(1); ctrl.tf = x(2); ctrl.T1 = x(3:5); ctrl.T2 = x(6:8);
     [t, z, u, ind] = hybrid_simulation(z0, ctrl, p, [0, tf]);
-    min_theta = -1*min(z(2,:));
-    max_theta = max(z(2,:)) - pi/2;
-    com = COM_jumping_leg(z, p);
-    y_com_max = max(com(2,:));
+    min_th1 = -1*min(z(2,:));       % cannot be less than zero
+    min_th2 = -1*min(z(3,:));
+    max_th1 = max(z(2,:)) - pi/2;   % cannot hypterextend joint
+    max_th2 = max(z(3,:)) - pi/2;
     
-    cineq = [min_theta, max_theta];
+    
+%     com = COM_climber(z, p);
+%     y_com_max = max(com(2,:));
+    
+    cineq = [min_th1, min_th2, max_th1, max_th2];
     
     ceq(1) = ctrl.tf - t(ind(1));       % Case 1 (ctrl_tf == t_takeoff)
-    ceq(2) = y_com_max - 0.4;           % Case 2 & 3 (y_COM_max == 0.4)
+    
+%     phi_solved = phi_solved_climber(z, p);
+%     ceq(2) = phi_solved(1) - z(4);
+%     ceq(2) = y_com_max - 0.4;           % Case 2 & 3 (y_COM_max == 0.4)
 
-                                                            
-% simply comment out any alternate constraints when not in use
     
 end

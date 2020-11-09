@@ -1,48 +1,43 @@
 clear all; close all; clc;
 
-% We can organize our code by filing things in different folders.  These
-% folders need to be added to the Matlab path so that it can run the files
-% inside them even when they are not the current folder listed at the top
-% of the Matlab window.  For more information about the current folder, see
-% http://www.mathworks.com/help/matlab/matlab_env/understanding-file-locations-in-matlab.html
-% For more information about the Matlab path, see
-% http://www.mathworks.com/help/matlab/matlab_env/what-is-the-matlab-search-path.html
 setpath                                     % add AutoDerived, Modeling, and Visualization folders to Matlab path
 
 p = parameters();                           % get parameters from file
-z0 = [0; pi/6; 0 ; 0; 200];                   % set initial state [y, th, dy, dth, (int_tau^2)]
-% Note: 5th state is the integral of torque squared over time
-% An equation has been added to dynamics_continuous and dynamics_discrete
-% to integrate this new state.
+z0 = [0; pi/8; pi/4; pi/8; 0; 10; 10; 0];   % set initial state [y, th1, th2, gamma, dy, dth1, dth2, dgamma]
 
 % set guess
-tf = .8;                                        % simulation final time (will set to range [0.4, 1])
-ctrl.tf = .35;                                  % control time points (duration of control period)
-ctrl.T = [1.0 1.0 1.0];                          % control values (array from [0, ctrl.tf])??
+tf = .8;                                    % simulation final time (will set to range [0.4, 1])
+ctrl.tf = .45;                              % control time points (duration of control period)
+ctrl.T1 = [1.0 1.0 1.0];                    % control values (array from [0, ctrl.tf])
+ctrl.T2 = [1.0 1.0 1.0];
 
-x = [tf, ctrl.tf, ctrl.T];
+x = [tf, ctrl.tf, ctrl.T1, ctrl.T2];
+
 % % setup and solve nonlinear programming problem
 problem.objective = @(x) objective(x,z0,p);     % create anonymous function that returns objective
 problem.nonlcon = @(x) constraints(x,z0,p);     % create anonymous function that returns nonlinear constraints
-problem.x0 = [tf ctrl.tf ctrl.T];               % initial guess for decision variables
-problem.lb = [.4 .1 -2*ones(size(ctrl.T))];     % lower bound on decision variables -- CHECK should this be 0.4??
-problem.ub = [1  1   2*ones(size(ctrl.T))];     % upper bound on decision variables
+problem.x0 = [tf ctrl.tf ctrl.T1 ctrl.T2];      % initial guess for decision variables
+problem.lb = [.4 .1 -2*ones(size(ctrl.T1)) ...
+    -2*ones(size(ctrl.T2))];                    % lower bound on decision variables
+problem.ub = [1  1   2*ones(size(ctrl.T1)) ...
+    2*ones(size(ctrl.T2))];                     % upper bound on decision variables
 problem.Aineq = []; problem.bineq = [];         % no linear inequality constraints
 problem.Aeq = []; problem.beq = [];             % no linear equality constraints
 problem.options = optimset('Display','iter');   % set options
 problem.solver = 'fmincon';                     % required
 x = fmincon(problem);                           % solve nonlinear programming problem
 
+%%
 % Note that once you've solved the optimization problem, you'll need to 
 % re-define tf, tfc, and ctrl here to reflect your solution.
 
-tf = x(1); ctrl.tf = x(2); ctrl.T = x(3:end);
+tf = x(1); ctrl.tf = x(2); ctrl.T1 = x(3:5); ctrl.T2 = x(6:8);
 
 [t, z, u, indices] = hybrid_simulation(z0,ctrl,p,[0 tf]); % run simulation
 
 %% Plot COM for your submissions
 figure(1)
-COM = COM_jumping_leg(z,p);
+COM = COM_climber(z,p);
 plot(t,COM(2,:))
 xlabel('time (s)')
 ylabel('CoM Height (m)')

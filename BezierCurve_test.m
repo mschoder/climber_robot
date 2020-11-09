@@ -6,7 +6,7 @@ t = 0;
 i = 1;
 
 % Control Points (Please try many different ones)
-ctrl_pt = [0, 1.5, 2.5, 1, 2];
+ctrl_pt = [0, 2.5, 0];
 
 % The time locations of each control points
 ctrl_pt_x = linspace(0,1, length(ctrl_pt));

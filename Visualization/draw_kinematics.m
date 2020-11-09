@@ -24,16 +24,12 @@ function draw_kinematics()
     
     axis equal
     axis([-.2, 1.0, -.2, 1])
-    
-    
-    
-
 
 end
 
-function draw_member1(pt1, pt2)
+function h = draw_member1(pt1, pt2)
 
-    plot([pt1(1) pt2(1)], [pt1(2) pt2(2)],...
+    h = plot([pt1(1) pt2(1)], [pt1(2) pt2(2)],...
                 '-o',...
                 'Color', 'b',...
                 'LineWidth',8,...
