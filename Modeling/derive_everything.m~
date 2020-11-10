@@ -12,15 +12,15 @@ syms t y dy ddy th1 dth1 ddth1 th2 dth2 ddth2 tau1 tau2...
     I_AB I_BC I_CE I_EG I_DF I_FH I_motor I_rm1 I_rm2 Nm1 Nm2 real
 % syms phi_sym real  % temporary angle var until we can solve numerically (see diagram)
 % syms phi dphi ddphi real    % allow for open chain kinematics; solve for phi later (see diagram)
-syms gamma dgamma ddgamma real
+syms gam dgam ddgam real
 
 % Group them for later use.
-q   = [y; th1; th2; gamma];         % generalized coordinates
-dq  = [dy; dth1; dth2; dgamma];     % first time derivatives
-ddq = [ddy; ddth1; ddth2; ddgamma]; % second time derivatives
+q   = [y; th1; th2; gam];         % generalized coordinates
+dq  = [dy; dth1; dth2; dgam];     % first time derivatives
+ddq = [ddy; ddth1; ddth2; ddgam]; % second time derivatives
 u   = [tau1; tau2];                 % control forces and moments
 % Fc  = [Fx_foot, Fy_foot, Fx_hand, Fy_hand]; % constraint forces and moments
-Fc = [Fy_foot Fx_hand];
+Fc = [Fx_hand; Fy_foot];
 
 % Parameters
 p = [g; stance_width; rope_diam; c_fric_hand; c_fric_foot; delta; ...  % 
@@ -49,45 +49,27 @@ e2hat = @(th) -sin(th)*ihat + cos(th)*jhat;
 ddt = @(r) jacobian(r,[q;dq])*[dq;ddq]; 
 
 % Define vectors to key points.
-% psi = pi - delta - phi;
 rH = y*jhat;
-rF = rH + L_FH * e1hat(gamma);
-rG = rH + L_GH * e1hat(gamma);
-rD = rF + L_DF * e1hat(gamma + th2);
-rE = rG + L_EG * e1hat(gamma + th2);
-rC = rE + L_CE * e1hat(gamma);
-rB = rC + L_BC * e1hat(gamma - th1);
-rA = rB + L_AB * e2hat(pi - delta - gammma + th1);
+rF = rH + L_FH * e1hat(-gam);
+rG = rH + L_GH * e1hat(-gam);
+rD = rF + L_DF * e1hat(-gam - th2);
+rE = rG + L_EG * e1hat(-gam - th2);
+rC = rE + L_CE * e1hat(-gam);
+rB = rC + L_BC * e1hat(-gam + th1);
+rA = rB + L_AB * e2hat(pi - delta + gam - th1);
 
-% Solve for gamma given fixed rA(x) = 0 constraint; for use externally
-gamma_solved = simplify(solve(rA(1) == 0, gamma, 'Real', true));
-dgamma_solved = simplify(ddt(gamma_solved));
-
-%%% MOVE THIS ELSEWHERE
-% % Solve for psi -- quadrilateral with 3 known sides and 2 known angles
-% % take second solution after verifying -- TODO, might be a cleaner way
-% phi_solved = solve(rA(1) == 0, phi, 'Real', true);  
-% phi_solved = simplify(phi_solved(2));
-% % derivative of phi for convenient use
-% dphi_solved = ddt(phi_solved);
-
-% % substitute in for all of the key vectors already defined
-% psi = pi - delta - phi;
-% rF = rH + L_FH * e1hat(th1 + phi);
-% rG = rH + L_GH * e1hat(th1 + phi);
-% rD = rF + L_DF * e1hat(th1 + th2 + phi);
-% rE = rG + L_EG * e1hat(th1 + th2 + phi);
-% rC = rE + L_CE * e1hat(th1 + phi);
-% rB = rC + L_BC * e1hat(phi);
-% rA = rB + L_AB * e2hat(psi);
+% Solve for gam given fixed rA(x) = 0 constraint; for use externally
+gam_solved = solve(rA(1) == 0, gam, 'Real', true);
+gam_solved = simplify(gam_solved(2));   % second soln is correct (trial & error)
+dgam_solved = simplify(ddt(gam_solved));
 
 % Define COMs
-rcmFH = rH + c_FH * e1hat(gamma);
-rcmDF = rF + c_DF * e1hat(gamma + th2);
-rcmEG = rG + c_EG * e1hat(gamma + th2);
-rcmCE = rE + c_CE * e1hat(gamma);
-rcmBC = rC + c_BC * e1hat(gamma - th1);
-rcmAB = rB + c_AB * e2hat(pi - delta - gammma + th1);
+rcmFH = rH + c_FH * e1hat(gam);
+rcmDF = rF + c_DF * e1hat(gam + th2);
+rcmEG = rG + c_EG * e1hat(gam + th2);
+rcmCE = rE + c_CE * e1hat(gam);
+rcmBC = rC + c_BC * e1hat(gam - th1);
+rcmAB = rB + c_AB * e2hat(pi - delta - gam + th1);
 
 % Take time derivatives of vectors for kinetic energy terms
 drH = ddt(rH);
@@ -123,12 +105,12 @@ M2Q = @(M,w) simplify(jacobian(w,dq)'*(M));
 
 % Define kinetic energies. See Lecture 6 formula for kinetic energy
 % of a rigid body. Negative bc defined via RHR
-omegaFH = -dgamma;
-omegaDF = -dgamma - dth2;
-omegaEG = -dgamma - dth2;
-omegaCE = -dgamma;
-omegaBC = -dgamma + dth1;
-omegaAB = -dgamma + dth1;
+omegaFH = -dgam;
+omegaDF = -dgam - dth2;
+omegaEG = -dgam - dth2;
+omegaCE = -dgam;
+omegaBC = -dgam + dth1;
+omegaAB = -dgam + dth1;
 
 % Kinetic energy
 T_FH = (1/2) * m_FH * dot(drcmFH, drcmFH) + (1/2) * I_FH * omegaFH^2;
@@ -139,8 +121,8 @@ T_BC = (1/2) * m_BC * dot(drcmBC, drcmBC) + (1/2) * I_BC * omegaBC^2;
 T_AB = (1/2) * m_AB * dot(drcmAB, drcmAB) + (1/2) * I_AB * omegaAB^2;
 T_m1 = (1/2) * m_motor * dot(drC, drC) + (1/2) * I_motor * omegaBC^2;
 T_m2 = (1/2) * m_motor * dot(drE, drE) + (1/2) * I_motor * omegaCE^2;
-T_r1 = (1/2) * I_rm1 * ((dgamma - dth1) + Nm1*dth1)^2;
-T_r2 = (1/2) * I_rm2 * (dgamma + Nm2*dth2)^2;
+T_r1 = (1/2) * I_rm1 * ((dgam - dth1) + Nm1*dth1)^2;
+T_r2 = (1/2) * I_rm2 * (dgam + Nm2*dth2)^2;
 % TODO - check angle signs RHR above ??
 
 %%
@@ -148,14 +130,14 @@ T_r2 = (1/2) * I_rm2 * (dgamma + Nm2*dth2)^2;
 % Define potential energies. See Lecture 6 formulas for gravitational 
 % potential energy of rigid bodies and elastic potential energies of
 % energy storage elements.
-V_FH = m_FH * g * dot(rcmFH, -jhat);
-V_DF = m_DF * g * dot(rcmDF, -jhat);
-V_EG = m_EG * g * dot(rcmEG, -jhat);
-V_CE = m_CE * g * dot(rcmCE, -jhat);
-V_BC = m_BC * g * dot(rcmBC, -jhat);
-V_AB = m_AB * g * dot(rcmAB, -jhat);
-V_m1 = m_motor * g * dot(rC, -jhat);
-V_m2 = m_motor * g * dot(rE, -jhat);
+V_FH = m_FH * g * dot(rcmFH, jhat);
+V_DF = m_DF * g * dot(rcmDF, jhat);
+V_EG = m_EG * g * dot(rcmEG, jhat);
+V_CE = m_CE * g * dot(rcmCE, jhat);
+V_BC = m_BC * g * dot(rcmBC, jhat);
+V_AB = m_AB * g * dot(rcmAB, jhat);
+V_m1 = m_motor * g * dot(rC, jhat);
+V_m2 = m_motor * g * dot(rE, jhat);
 
 
 % Sum KE and PE terms
@@ -165,7 +147,7 @@ V = simplify(V_FH + V_DF + V_EG + V_CE + V_BC + V_AB + V_m1 + V_m2);
 % Define contributions to generalized forces.  See Lecture 6 formulas for
 % contributions to generalized forces.
 QF1 = F2Q(Fy_foot*jhat,rH);              % y-dir contact force at foot
-QF2 = F2Q(Fx_foot*ihat,rA);              % x-dir contact force at hand
+QF2 = F2Q(Fx_hand*ihat,rA);              % x-dir contact force at hand
 
 Qtau1 = M2Q(-tau1*khat, omegaBC*khat);  % motor 1 @ point C
 Qtau2 = M2Q(-tau2*khat, omegaCE*khat);  % motor 2 @ point E
@@ -226,7 +208,11 @@ matlabFunction(COM,'file',[directory 'COM_' name],'vars',{z p});
 
 % Write a function to evaluate the energy of the system given the current state and parameters
 matlabFunction(E,'file',[directory 'energy_' name],'vars',{z p});
-%%
-% Write a function to evaluate phi and dphi with the hand constraint x=0
-phi_sol = [phi_solved dphi_solved]';
-matlabFunction(phi_sol,'file',[directory 'phi_solved_' name],'vars',{z p});
+% %%
+% % Write a function to evaluate phi and dphi with the hand constraint x=0
+% phi_sol = [phi_solved dphi_solved]';
+% matlabFunction(phi_sol,'file',[directory 'phi_solved_' name],'vars',{z p});
+
+% Write a function to evaluate gam and dgam with the hand constraint x=0
+gam_sol = [gam_solved dgam_solved]';
+matlabFunction(gam_sol,'file',[directory 'gam_solved_' name],'vars',{z p});

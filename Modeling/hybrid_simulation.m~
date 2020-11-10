@@ -116,11 +116,7 @@ function [dz, u] = dynamics_continuous(t,z,ctrl,p,iphase)
     A = A_climber(z,p);                 % get full A matrix
     b = b_climber(z,u,[0; 0],p);        % get full b vector (z,u,Fc,p)
     
-    % update joint limit torques 
-    Tauc = joint_limit_torque(z,p);
-    QTauc = [0; 0; Tauc; 0];
-    
-    qdd = A\(b + QTauc);                % solve system for accelerations (and possibly forces)
+    qdd = A\b;                % solve system for accelerations (and possibly forces)
     dz(1:4,1) = z(5:8);       % assign velocities to time derivative of state vector
     dz(5:8,1) = qdd(1:4);     % assign accelerations to time derivative of state vector
 
@@ -233,11 +229,12 @@ function Tauc = joint_limit_torque(z,p)
     
     q3 = z(3);
     dq3 = z(7);
-    q3_llim = -80/360*2*pi;
-    Tauc = -Kappa * (q3 - q3_llim) - Dampa * dq3;
-    if (q3 < q3_llim || Tauc > 0)
-        Tauc = 0;
-    end   
+    q3_llim = -135/350*2*pi;
+    Tauc = -Kappa * 
+    
+    if (q3 < q3_llim || 
+    
+    
 end
 
 

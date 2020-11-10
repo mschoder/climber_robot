@@ -1,22 +1,29 @@
-
+clear all; close all; clc;
 
 p = parameters();
-z0 = [0, pi/8, pi/4, pi/12, 0, 0, 0, 0]';
+z0 = [0.25, -pi/8, -pi/4, -pi/12, 0, 0, 0, 0]';
+% z0 = [0, 0, 0, -.3, 0, 0, 0, 0]';
 gs = gam_solved_climber(z0, p);
-z0(4) = gs(1);
+z0(4) = gs(1)-0.1;
 z0(8) = gs(2);
-tspan = [0 0.035];
-ctrl.tf = 0.40;
-ctrl.T1 = [0.2 1.8 2.0];
-ctrl.T2 = [0.2 1.8 2.0];
+tspan = [0 1.0];
+ctrl.tf = 0.6;
+ctrl.T1 = [0.4 -1.0 -1.0];
+ctrl.T2 = [0.4 -1.0 -1.0];
 
 [tout, zout, uout, indices] = hybrid_simulation(z0, ctrl, p, tspan);
 
 %% Animate
-speed = 0.005;
+speed = 0.1;
 animate_test(tout, zout, p, speed);
 
+%% Energy
+E = energy_climber(zout,p);
+%     figure(2); clf
+%     plot(tout,E);xlabel('Time (s)'); ylabel('Energy (J)');
 
+
+%%
 function animate_test(t, z, p, speed)
 
 %     axis equal
@@ -39,7 +46,6 @@ function animate_test(t, z, p, speed)
     
     tic
     while toc < t(end)/speed
-        disp(toc)
         tsim = toc*speed;
         zint = interp1(t',z',tsim', 'linear')';
         draw_side(zint,p,h_side);
@@ -50,7 +56,6 @@ end
 
 function draw_side(z,p,h_side)
     kp = keypoints_climber(z, p);
-%     [hAB, hBC, hCE, hDF, hEG, hFH] = h_side;
     update_member(h_side(1), kp(:,1), kp(:,2));
     update_member(h_side(2), kp(:,2), kp(:,3));
     update_member(h_side(3), kp(:,3), kp(:,5));

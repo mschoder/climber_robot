@@ -4,9 +4,9 @@ function draw_kinematics()
     z = [0.2, pi/8, pi/4, pi/12, 0, 0, 0, 0]';
     
     % Update phi with hand constraint
-    phi_solved = phi_solved_climber(z, p);
-    z(4) = phi_solved(1);
-    z(8) = phi_solved(2);
+    gam_solved = gam_solved_climber(z, p);
+    z(4) = gam_solved(1);
+    z(8) = gam_solved(2);
 
     kp = keypoints_climber(z, p);
     

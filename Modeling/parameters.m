@@ -9,6 +9,7 @@ rope_diam = 0.010;
 c_fric_hand = 0.2;        % estimated friction coefficient (single side)
 c_fric_foot = 0.2;        % estimated friction coefficient (single side)
 delta = 2.3562;           % fixed shoulder angle, 3*pi/4
+% delta = 0;
 
 % Lengths
 L_AB = 0.150;
