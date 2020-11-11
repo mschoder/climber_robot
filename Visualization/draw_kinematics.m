@@ -1,7 +1,7 @@
 function draw_kinematics()
 % Draw simple model to validate kinematics
     p = parameters();
-    z = [0.2, pi/8, pi/4, pi/12, 0, 0, 0, 0]';
+    z = [0.2, -pi/2, -pi/4, 0, 0, 0, 0, 0]';
     
     % Update phi with hand constraint
     gam_solved = gam_solved_climber(z, p);

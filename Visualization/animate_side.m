@@ -1,30 +1,4 @@
-clear all; close all; clc;
-
-p = parameters();
-z0 = [0.25, -pi/8, -pi/4, -pi/12, 0, 0, 0, 0]';
-% z0 = [0, 0, 0, -.3, 0, 0, 0, 0]';
-gs = gam_solved_climber(z0, p);
-z0(4) = gs(1);
-z0(8) = gs(2);
-tspan = [0 0.5];
-ctrl.tf = 0.2;
-ctrl.T1 = [0.5 -0.8 -0.8];
-ctrl.T2 = [0.5 -1.2 -1.2];
-
-[tout, zout, uout, indices] = hybrid_simulation(z0, ctrl, p, tspan);
-
-%% Animate
-speed = 0.1;
-animate_test(tout, zout, p, speed);
-
-%% Energy
-E = energy_climber(zout,p);
-%     figure(2); clf
-%     plot(tout,E);xlabel('Time (s)'); ylabel('Energy (J)');
-
-
-%%
-function animate_test(t, z, p, speed)
+function animate_side(t, z, p, speed)
 
 %     axis equal
     pbaspect([1 1 1])
