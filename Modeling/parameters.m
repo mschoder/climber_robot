@@ -35,7 +35,7 @@ c_FH = L_FH/2;
 
 % Masses
 m_AB = .4*L_AB;
-m_BC = .4*L_BC;
+m_BC = .066;
 m_CE = .4*L_CE;
 m_EG = .4*L_EG;
 m_DF = .4*L_DF;

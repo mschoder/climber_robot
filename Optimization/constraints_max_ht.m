@@ -1,4 +1,4 @@
-function [cineq, ceq] = constraints(x,z0,p)
+function [cineq, ceq] = constraints_max_ht(x,z0,p)
 % Inputs:
 % x - an array of decision variables.
 % z0 - the initial state
@@ -20,12 +20,13 @@ function [cineq, ceq] = constraints(x,z0,p)
 % provided using an anonymous function, just as we use anonymous
 % functions with ode45().
 
-    q2_llim = -75/360*2*pi;
-    q2_ulim = 30/360*2*pi;
-    q3_llim = -135/360*2*pi;
-    q3_ulim = -30/360*2*pi;
-    q4_llim = -30/360*2*pi;
-    q4_ulim = 15/360*2*pi;
+% joint limits
+    q2_llim = -70/360*2*pi;  % theta 1
+    q2_ulim = 40/360*2*pi;
+    q3_llim = -130/360*2*pi; % theta 2
+    q3_ulim = -35/360*2*pi;
+    q4_llim = -25/360*2*pi;  % gamma
+    q4_ulim = 10/360*2*pi;
 
     tf = x(1); ctrl.tf = x(2); ctrl.T1 = x(3:5); ctrl.T2 = x(6:8);
     [t, z, u, ind] = hybrid_simulation(z0, ctrl, p, [0, tf]);
@@ -38,17 +39,8 @@ function [cineq, ceq] = constraints(x,z0,p)
     min_gam = q4_llim - min(z(4,:));
     max_gam = max(z(4,:)) - q4_ulim;
     
-    
-%     com = COM_climber(z, p);
-%     y_com_max = max(com(2,:));
-    
     cineq = [min_th1, min_th2, max_th1, max_th2, min_gam, max_gam];
     
     ceq(1) = ctrl.tf - t(ind(1));       % Case 1 (ctrl_tf == t_takeoff)
-    
-%     phi_solved = phi_solved_climber(z, p);
-%     ceq(2) = phi_solved(1) - z(4);
-%     ceq(2) = y_com_max - 0.4;           % Case 2 & 3 (y_COM_max == 0.4)
-
     
 end

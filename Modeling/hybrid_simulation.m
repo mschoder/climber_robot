@@ -43,11 +43,9 @@ function [tout, zout, uout, indices] = hybrid_simulation(z0,ctrl,p,tspan)
         uout(:,i+1) = u; 
         
         % Describe phase (1 = control, 2 = jump, 3 = descend)'
-        eps = 0.01;
+        eps = 0.015;
         if(zout(1,i+1) > z0(1)+eps && zout(5,i+1)+eps > 0 && iphase == 1) % jump started
             iphase = 2;
-        % Change: was zout(1,i+1) but max height == when velocity goes neg
-        % // zout(3,i+1)
         elseif(zout(5,i+1) < 0 && iphase == 2) % max height reached; descending
             iphase = 3;
         end
@@ -87,7 +85,7 @@ function qdot = discrete_impact_contact(z,p)
 %     qdot = qdot + M \ Jhx.' * F_Ax;
     
     % horizontal spring damper on hand
-    Kappa = .5;
+    Kappa = 0.5;
     Dampa = 0.03;
     xerr = 0 - rA(1);
     dxerr = 0 - drA(1);
@@ -156,8 +154,8 @@ function u = control_laws(t,z,ctrl,iphase)
         dth1 = z(6,:);           % leg angular velocities
         dth2 = z(7,:);
 
-        th1_des = -pi/12;         % desired leg angles
-        th2_des = -pi/6;
+        th1_des = -pi/8;         % desired leg angles
+        th2_des = -pi/4;
         k = 20;                  % stiffness (N/rad)
         b = .5;                  % damping (N/(rad/s))
 
@@ -175,13 +173,13 @@ function qdot = joint_limit_constraint(z,p)
     q2_ulim = 45/360*2*pi;
     q3_llim = -135/360*2*pi;
     q3_ulim = -30/360*2*pi;
-    q4_llim = -45/360*2*pi;
+    q4_llim = -60/360*2*pi;
     q2 = z(2);
     q3 = z(3);
     q4 = z(4);
     qdot = z(5:8);
     
-    K = 1;
+    K = 5;
     D = 0.02;
     
     Jq2 = [0 1 0 0];
@@ -189,22 +187,22 @@ function qdot = joint_limit_constraint(z,p)
     Jq4 = [0 0 0 1];
     M = A_climber(z,p);
     
-    if (q2 < q2_llim)
-        disp(q2)
-    end
-    
-    if (q2 < q2_llim && qdot(2) < 0) % q2 lower limit
-        Tq2 = M(2,2)*(0 - Jq2 * qdot);
-        accel = M \ Jq2' * Tq2;
-        qdot = qdot + accel;
-    end
-    
-    if (q2 > q2_ulim && qdot(2) > 0) % q2 upper limit
-        Tq2 = M(2,2)*(0 - Jq2 * qdot);
-        accel = M \ Jq2' * Tq2;
-        qdot = qdot + accel;
-    end
-    
+%     if (q2 < q2_llim)
+%         disp(q2)
+%     end
+%     
+%     if (q2 < q2_llim && qdot(2) < 0) % q2 lower limit
+%         Tq2 = M(2,2)*(0 - Jq2 * qdot);
+%         accel = M \ Jq2' * Tq2;
+%         qdot = qdot + accel;
+%     end
+%     
+%     if (q2 > q2_ulim && qdot(2) > 0) % q2 upper limit
+%         Tq2 = M(2,2)*(0 - Jq2 * qdot);
+%         accel = M \ Jq2' * Tq2;
+%         qdot = qdot + accel;
+%     end
+%     
 %     if (q3 < q3_llim && qdot(3) < 0) % q3 lower limit
 %         Tq3 = M(3,3)*(0 - Jq3 * qdot);
 %         accel = M \ Jq3' * Tq3;
@@ -236,12 +234,21 @@ function QTauc = joint_limit_torque(z,p)
     q4 = z(4);
     qdot = z(5:8);
     
+    % known to work
     q2_llim = -75/360*2*pi;  % Theta 1
     q2_ulim = 45/360*2*pi;
     q3_llim = -135/360*2*pi; % Theta 2
     q3_ulim = -30/360*2*pi;
     q4_llim = -30/360*2*pi;  % Gamma
     q4_ulim = 15/360*2*pi;
+
+% % More relaxed
+%     q2_llim = -75/360*2*pi;  % Theta 1
+%     q2_ulim = 55/360*2*pi;
+%     q3_llim = -145/360*2*pi; % Theta 2
+%     q3_ulim = -25/360*2*pi;
+%     q4_llim = -45/360*2*pi;  % Gamma
+%     q4_ulim = 35/360*2*pi;
     
     Tauc2 = 0; Tauc3 = 0; Tauc4 = 0;
     

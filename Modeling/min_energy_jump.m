@@ -2,7 +2,6 @@ clear all; close all; clc;
 
 p = parameters();
 z0 = [0.0, -pi/8, -pi/4, -pi/12, 0, 0, 0, 0]';
-% z0 = [0, 0, 0, -.3, 0, 0, 0, 0]';
 gs = gam_solved_climber(z0, p);
 z0(4) = gs(1);
 z0(8) = gs(2);
@@ -34,6 +33,29 @@ subplot(4,1,4)
 plot(tout, zout(4,:)*360/(2*pi))
 ylabel('gamma (deg)')
 xlabel('Time (s)')
+
+%% Plot torque control profile
+figure(3)
+ctrl_t = linspace(0, ctrl.tf, 50);
+ctrl_pt_t = linspace(0, ctrl.tf, length(ctrl.T1));
+n = length(ctrl_t);
+ctrl_input = zeros(1,n);
+
+for i=1:n
+    ctrl_input1(i) = BezierCurve(ctrl.T1,ctrl_t(i)/ctrl.tf);
+    ctrl_input2(i) = BezierCurve(ctrl.T2,ctrl_t(i)/ctrl.tf);
+end
+
+hold on
+plot(ctrl_t, ctrl_input1, 'b');
+plot(ctrl_t, ctrl_input2, 'g');
+plot(ctrl_pt_t, ctrl.T1, 'bo');
+plot(ctrl_pt_t, ctrl.T2, 'go');
+hold off
+xlabel('Time (s)')
+ylabel('Torque (Nm)')
+title('Control Input Trajectory')
+legend
 
 %% Animate
 figure

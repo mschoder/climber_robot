@@ -1,4 +1,4 @@
-function f = objective(x,z0,p)
+function f = objective_min_tausq(x,z0,p)
 % Inputs:
 % x - an array of decision variables.
 % z0 - the initial state [t, th, dy, dth]
@@ -18,16 +18,14 @@ function f = objective(x,z0,p)
 % functions with ode45().                
     
     tf = x(1); ctrl.tf = x(2); ctrl.T1 = x(3:5); ctrl.T2 = x(6:8);
-    [t, z, u, ind] = hybrid_simulation(z0, ctrl, p, [0, tf]);
-    com = COM_climber(z, p);
     
-%     int_tau2 = z(5,end);
-%     int_tau2 = sum(t.*u.^2);      % alternative implementation
-    
-    f = -max(com(2,:));                             % negative of COM max height
+    [t, z, u, indices] = hybrid_simulation(z0, ctrl, p, [0, tf]);
+
+    tausq = t(1:indices(1)).*u(:,1:indices(1)).^2;
+    int_tau2 = sum(tausq, 'all'); 
     
     % alternate objective functions:
-%     f = tf;                                         % final time (minimize)
-%     f = int_tau2;                                   % minimize T^2 integral
+%     f = tf;                               % final time (minimize)
+    f = int_tau2;                           % minimize T^2 integral
     
 end
