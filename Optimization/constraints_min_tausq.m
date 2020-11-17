@@ -30,7 +30,7 @@ function [cineq, ceq] = constraints_min_tausq(x,z0,p,tf0)
 
     q2_llim = -70/360*2*pi;  % theta 1
     q2_ulim = 60/360*2*pi;
-    q3_llim = -145/360*2*pi; % theta 2
+    q3_llim = -100/360*2*pi; % theta 2
     q3_ulim = -25/360*2*pi;            
     q4_llim = -45/360*2*pi;  % gamma
     q4_ulim = 35/360*2*pi;

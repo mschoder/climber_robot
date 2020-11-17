@@ -85,7 +85,7 @@ function qdot = discrete_impact_contact(z,p)
 %     qdot = qdot + M \ Jhx.' * F_Ax;
     
     % horizontal spring damper on hand
-    Kappa = 0.5;
+    Kappa = 0.5; 
     Dampa = 0.03;
     xerr = 0 - rA(1);
     dxerr = 0 - drA(1);
@@ -236,10 +236,10 @@ function QTauc = joint_limit_torque(z,p)
     
     % known to work
     q2_llim = -75/360*2*pi;  % Theta 1
-    q2_ulim = 45/360*2*pi;
-    q3_llim = -135/360*2*pi; % Theta 2
+    q2_ulim = 10/360*2*pi;
+    q3_llim = -100/360*2*pi; % Theta 2 %130
     q3_ulim = -30/360*2*pi;
-    q4_llim = -30/360*2*pi;  % Gamma
+    q4_llim = -60/360*2*pi;  % Gamma
     q4_ulim = 15/360*2*pi;
 
 % % More relaxed

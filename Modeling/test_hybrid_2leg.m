@@ -9,15 +9,15 @@ z0(8) = gs(2);
 disp(gs(1))
 
 %%
-tspan = [0 0.7];
-ctrl.tf = 0.7;
-ctrl.T1 = [-0.0 -0.8 -1.0];
-ctrl.T2 = [0.3 -0.0 -.1];
+tspan = [0 4];
+ctrl.tf = 0.9;
+ctrl.T1 = [1.0548 0.0365 -1.6144]/2;
+ctrl.T2 = [-0.2796 -1.3954 -1.7567]/2;
 
-[tout, zout, uout, indices] = hybrid_simulation(z0, ctrl, p, tspan);
+[tout,zout_l,zout_r,uout_l,uout_r,indices] = hybrid_simulation_2leg(z0,ctrl,p,tspan);
 
 %% Plot torque control profile
-figure(3)
+figure(1)
 ctrl_t = linspace(0, ctrl.tf, 50);
 ctrl_pt_t = linspace(0, ctrl.tf, length(ctrl.T1));
 n = length(ctrl_t);
@@ -40,38 +40,47 @@ title('Control Input Trajectory')
 legend
 
 %% Plot Joint Angles
-figure
+figure(2)
 subplot(4,1,1)
-plot(tout, zout(1,:))
+hold on
+plot(tout, zout_l(1,:))
+plot(tout, zout_r(1,:))
 ylabel('y (m)')
 title('State Values')
 
 subplot(4,1,2)
-plot(tout, zout(2,:)*360/(2*pi))
+hold on
+plot(tout, zout_l(2,:)*360/(2*pi))
+plot(tout, zout_r(2,:)*360/(2*pi))
 ylabel('theta1 (deg)')
 
 subplot(4,1,3)
-plot(tout, zout(3,:)*360/(2*pi))
+plot(tout, zout_l(3,:)*360/(2*pi))
+plot(tout, zout_r(3,:)*360/(2*pi))
 ylabel('theta2 (deg)')
 
 subplot(4,1,4)
-plot(tout, zout(4,:)*360/(2*pi))
+plot(tout, zout_l(4,:)*360/(2*pi))
+plot(tout, zout_r(4,:)*360/(2*pi))
 ylabel('gamma (deg)')
 xlabel('Time (s)')
 
 %% Animate
-figure
+figure(3)
 speed = 0.2;
-animate_side(tout, zout, p, speed);
+hold on
+animate_side(tout, zout_l, p, speed);
+% animate_size(tout, zout_r, p, speed);
 
 %% Energy
-E = energy_climber(zout,p);
+% E = energy_climber(zout,p);
 %     figure(2); clf
 %     plot(tout,E);xlabel('Time (s)'); ylabel('Energy (J)');
 
 %% Print integral of torque squared
-tausq = tout(1:indices(1)).*uout(:,1:indices(1)).^2;
-int_tau2 = sum(tausq, 'all'); 
+tausq_l = tout(1:indices(1)).*uout_l(:,1:indices(1)).^2;
+tausq_r = tout(1:indices(1)).*uout_r(:,1:indices(1)).^2;
+int_tau2 = sum(tausq_l, 'all') + sum(tausq_r, 'all'); 
 fprintf('Integral Torque^2: %d\n', int_tau2);
 %%
 %     tf: 0.3340

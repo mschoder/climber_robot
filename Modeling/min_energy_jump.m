@@ -58,8 +58,9 @@ title('Control Input Trajectory')
 legend
 
 %% Animate
-figure
-speed = 0.2;
+figure(4)
+clf;
+speed = 0.1;
 animate_side(tout, zout, p, speed);
 
 %% Energy

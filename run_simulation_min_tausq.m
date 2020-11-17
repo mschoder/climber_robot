@@ -3,19 +3,18 @@ clear all; close all; clc;
 setpath                                     % add AutoDerived, Modeling, and Visualization folders to Matlab path
 
 p = parameters();                           % get parameters from file
-z0 = [0; -pi/8; -pi/4; -.2968; 0; 0; 0; 0]; % set initial state [y, th1, th2, gamma, dy, dth1, dth2, dgamma]
 
-% set guess
-tf = .7;                                    % simulation final time (will set to range [0.4, 1])
-ctrl.tf = 0.3775;                           % control time points (duration of control period)
-ctrl.T1 = [2.0580 -0.6731 -0.6131];
-ctrl.T2 = [1.0625 0.3976 -1.6107];
+% set initial state [y, th1, th2, gamma, dy, dth1, dth2, dgamma]
+z0 = [0.0, -30/360*2*pi, -130/360*2*pi, -pi/12, 0, 0, 0, 0]';
+gs = gam_solved_climber(z0, p); % set correct gamma
+z0(4) = gs(1);
+z0(8) = gs(2);
 
 % WORKS, doesnt converge...
-% tf = .7;                                    % simulation final time (will set to range [0.4, 1])
-% ctrl.tf = .4;                               % control time points (duration of control period)
-% ctrl.T1 = [1.2 -1.9 -2.1];                  % control values (array from [0, ctrl.tf])
-% ctrl.T2 = [0.95 -1.9 -1.9];
+tf = 0.9;                                    % simulation final time (will set to range [0.4, 1])
+ctrl.tf = .8;                               % control time points (duration of control period)
+ctrl.T1 = [-0.5 0 -1.9];                  % control values (array from [0, ctrl.tf])
+ctrl.T2 = [0 -1.4 -1.8];
 
 x = [tf, ctrl.tf, ctrl.T1, ctrl.T2];
 
@@ -111,7 +110,7 @@ xlabel('Time (s)')
 
 %% Run the animation
 figure(6)                          % get the coordinates of the points to animate
-speed = .2;                       % set animation speed
+speed = .05;                       % set animation speed
 clf                                % clear fig
 animate_side(t,z,p,speed)          % run animation
 

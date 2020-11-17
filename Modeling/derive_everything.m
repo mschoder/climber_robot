@@ -50,13 +50,13 @@ ddt = @(r) jacobian(r,[q;dq])*[dq;ddq];
 
 % Define vectors to key points.
 rH = y*jhat;
-rF = rH + L_FH * e1hat(-gam);
-rG = rH + L_GH * e1hat(-gam);
-rD = rF + L_DF * e1hat(-gam - th2);
-rE = rG + L_EG * e1hat(-gam - th2);
-rC = rE + L_CE * e1hat(-gam);
-rB = rC + L_BC * e1hat(-gam + th1);
-rA = rB + L_AB * e2hat(pi - delta + gam - th1);
+rF = rH + L_FH * e1hat(gam);
+rG = rH + L_GH * e1hat(gam);
+rD = rF + L_DF * e1hat(gam - th2);
+rE = rG + L_EG * e1hat(gam - th2);
+rC = rE + L_CE * e1hat(gam);
+rB = rC + L_BC * e1hat(gam + th1);
+rA = rB + L_AB * e2hat(pi - delta - gam - th1);
 
 % Solve for gam given fixed rA(x) = 0 constraint; for use externally
 gam_solved = solve(rA(1) == 0, gam, 'Real', true);
@@ -64,12 +64,12 @@ gam_solved = simplify(gam_solved(2));   % second soln is correct (trial & error)
 dgam_solved = simplify(ddt(gam_solved));
 
 % Define COMs
-rcmFH = rH + c_FH * e1hat(-gam);
-rcmDF = rF + c_DF * e1hat(-gam - th2);
-rcmEG = rG + c_EG * e1hat(-gam - th2);
-rcmCE = rE + c_CE * e1hat(-gam);
-rcmBC = rC + c_BC * e1hat(-gam + th1);
-rcmAB = rB + c_AB * e2hat(pi - delta + gam - th1);
+rcmFH = rH + c_FH * e1hat(gam);
+rcmDF = rF + c_DF * e1hat(gam - th2);
+rcmEG = rG + c_EG * e1hat(gam - th2);
+rcmCE = rE + c_CE * e1hat(gam);
+rcmBC = rC + c_BC * e1hat(gam + th1);
+rcmAB = rB + c_AB * e2hat(pi - delta - gam - th1);
 
 % Take time derivatives of vectors for kinetic energy terms
 drH = ddt(rH);
@@ -105,12 +105,12 @@ M2Q = @(M,w) simplify(jacobian(w,dq)'*(M));
 
 % Define kinetic energies. See Lecture 6 formula for kinetic energy
 % of a rigid body. Negative bc defined via RHR
-omegaFH = dgam;
-omegaDF = dgam + dth2;
-omegaEG = dgam + dth2;
-omegaCE = dgam;
-omegaBC = dgam - dth1;
-omegaAB = dgam - dth1;
+omegaFH = -dgam;
+omegaDF = -dgam + dth2;
+omegaEG = -dgam + dth2;
+omegaCE = -dgam;
+omegaBC = -dgam - dth1;
+omegaAB = -dgam - dth1;
 
 % Kinetic energy
 T_FH = (1/2) * m_FH * dot(drcmFH, drcmFH) + (1/2) * I_FH * omegaFH^2;
@@ -123,6 +123,8 @@ T_m1 = (1/2) * m_motor * dot(drC, drC) + (1/2) * I_motor * omegaBC^2;
 T_m2 = (1/2) * m_motor * dot(drE, drE) + (1/2) * I_motor * omegaCE^2;
 T_r1 = (1/2) * I_rm1 * ((dgam - dth1) + Nm1*dth1)^2;
 T_r2 = (1/2) * I_rm2 * (dgam + Nm2*dth2)^2;
+T_r1 = 0;
+T_r2 = 0;
 
 %%
 
@@ -155,7 +157,8 @@ Qtau = Qtau1 + Qtau2;
 
 % Sum kinetic energy terms, potential energy terms, and generalized force
 % contributions.
-Q = QF1 + QF2 + Qtau;
+% Q = QF1 + QF2 + Qtau;
+Q = Qtau;
 
 % Calculate rcm, the location of the center of mass
 rcm = (m_AB*rcmAB + m_BC*rcmBC + m_CE*rcmCE + m_EG*rcmEG + m_DF*rcmDF + m_FH*rcmFH ...
@@ -178,6 +181,12 @@ size(eom)
 %%% Rearrange Equations of Motion. 
 A = simplify(jacobian(eom,ddq));
 b = simplify(A*ddq - eom);
+
+% Equations of motion are
+% eom = A *ddq + (coriolis term) + (gravitational term) - Q = 0
+Mass_Joint_Sp = A;
+Grav_Joint_Sp = simplify(jacobian(V, q)');
+Corr_Joint_Sp = simplify( eom + Q - Grav_Joint_Sp - A*ddq);
 
 %%% Write functions to evaluate dynamics, etc...
 z = sym(zeros(length([q;dq]),1)); % initialize the state vector
@@ -219,3 +228,19 @@ matlabFunction(gam_sol,'file',[directory 'gam_solved_' name],'vars',{z p});
 % Write a function to eval jacobian at the hand (point A)
 jA = jacobian(rA, q);
 matlabFunction(jA, 'file',[directory, 'jacobian_hand_', name],'vars',{z,p});
+
+% Write a function to eval jacobian at the foot (point H)
+jH = jacobian(rH, q);
+matlabFunction(jH, 'file',[directory, 'jacobian_foot_', name],'vars',{z,p});
+
+% Compute ddt( jH ) and write function
+djH = reshape( ddt(jH(:)) , size(jH) );
+matlabFunction(djH, 'file',[directory, 'jacobian_dot_foot_', name],'vars',{z,p});
+
+% Write a function to eval jacobian at point C
+jC = jacobian(rC, q);
+matlabFunction(jC, 'file',[directory, 'jacobian_C_', name],'vars',{z,p});
+
+% Functions for joint space conversion
+matlabFunction(Grav_Joint_Sp, 'file',[directory, 'grav_', name],'vars',{z,p});
+matlabFunction(Corr_Joint_Sp, 'file',[directory, 'corr_', name],'vars',{z,p});

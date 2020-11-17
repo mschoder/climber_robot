@@ -8,15 +8,16 @@ function animate_side(t, z, p, speed)
     v_rope = plot([0 0], [0 1], 'k-', 'LineWidth',5);
  
     % init base plot objs
-    hAB = draw_member1([0 0], [0 0]);  % AB
-    hBC = draw_member1([0 0], [0 0]);  % BC
-    hCE = draw_member1([0 0], [0 0]);  % CE
-    hDF = draw_member1([0 0], [0 0]);  % DF
-    hEG = draw_member1([0 0], [0 0]);  % EG
-    hFH = draw_member1([0 0], [0 0]);  % FH
+    
+    hBC = draw_member1([0 0], [0 0], 'b');  % BC
+    hCE = draw_member1([0 0], [0 0], 'r');  % CE
+    hDF = draw_member1([0 0], [0 0], 'g');  % DF
+    hEG = draw_member1([0 0], [0 0], 'magenta');  % EG
+    hFH = draw_member1([0 0], [0 0], 'k');  % FH
+    hAB = draw_member1([0 0], [0 0], 'cyan');  % AB
     
     h_side = [hAB hBC hCE hDF hEG hFH];
-    axis([-.2, 1.0, -.2, 1])
+    axis([-.4, 0.8, -0.8, 0.8])
     
     tic
     while toc < t(end)/speed
@@ -44,15 +45,15 @@ function update_member(h, pt1, pt2)
     h.YData = [pt1(2) pt2(2)];
 end
 
-function h = draw_member1(pt1, pt2)
+function h = draw_member1(pt1, pt2, color)
 
     h = plot([pt1(1) pt2(1)], [pt1(2) pt2(2)],...
                 '-o',...
-                'Color', 'green',...
-                'LineWidth',8,...
-                'MarkerEdgeColor','r',...
-                'MarkerFaceColor','r',...
-                'MarkerSize',6); 
+                'Color', color,...
+                'LineWidth',6,...
+                'MarkerEdgeColor','blue',...
+                'MarkerFaceColor','blue',...
+                'MarkerSize',4); 
 
 end
 
@@ -61,9 +62,9 @@ function draw_member2(pt1, pt2)
     plot([pt1(1) pt2(1)], [pt1(2) pt2(2)],...
                 '-o',...
                 'Color', 'cyan',...
-                'LineWidth',8,...
+                'LineWidth',6,...
                 'MarkerEdgeColor','magenta',...
                 'MarkerFaceColor','magenta',...
-                'MarkerSize',6); 
+                'MarkerSize',4); 
 
 end

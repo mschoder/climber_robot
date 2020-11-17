@@ -3,19 +3,30 @@ clear all; close all; clc;
 setpath                                     % add AutoDerived, Modeling, and Visualization folders to Matlab path
 
 p = parameters();                           % get parameters from file
-z0 = [0; -pi/8; -pi/4; -.2968; 0; 0; 0; 0]; % set initial state [y, th1, th2, gamma, dy, dth1, dth2, dgamma]
+% set initial state [y, th1, th2, gamma, dy, dth1, dth2, dgamma]
+z0 = [0.0, -30/360*2*pi, -110/360*2*pi, -pi/12, 0, 0, 0, 0]';
+gs = gam_solved_climber(z0, p); % set correct gamma
+z0(4) = gs(1);
+z0(8) = gs(2);
 
 % set guess
-tf = .7;                                    % simulation final time (will set to range [0.4, 1])
-ctrl.tf = .4;                               % control time points (duration of control period)
-ctrl.T1 = [1.2 -1.9 -2.1];                  % control values (array from [0, ctrl.tf])
-ctrl.T2 = [0.95 -1.9 -1.9];
+tf = .95;                                    % simulation final time (will set to range [0.4, 1])
+ctrl.tf = 0.85;                           % control time points (duration of control period)
+ctrl.T1 = [-0.5 0 -1.9];                  % control values (array from [0, ctrl.tf])
+ctrl.T2 = [0 -1.4 -1.8];
+
+
+% % WORKS, doesnt converge...
+% tf = .9;                                    % simulation final time (will set to range [0.4, 1])
+% ctrl.tf = .4;                               % control time points (duration of control period)
+% ctrl.T1 = [1.2 -1.9 -2.1];                  % control values (array from [0, ctrl.tf])
+% ctrl.T2 = [0.95 -1.9 -1.9];
 
 x = [tf, ctrl.tf, ctrl.T1, ctrl.T2];
 
 % % setup and solve nonlinear programming problem
 problem.objective = @(x) objective_min_tausq(x,z0,p);     % create anonymous function that returns objective
-problem.nonlcon = @(x) constraints_min_tausq(x,z0,p);     % create anonymous function that returns nonlinear constraints
+problem.nonlcon = @(x) constraints_min_energy_walk(x,z0,p,tf);     % create anonymous function that returns nonlinear constraints
 problem.x0 = [tf ctrl.tf ctrl.T1 ctrl.T2];      % initial guess for decision variables
 problem.lb = [.4 .1 -2.2*ones(size(ctrl.T1)) ...
     -2.2*ones(size(ctrl.T2))];                    % lower bound on decision variables
@@ -42,9 +53,18 @@ xlabel('time (s)')
 ylabel('CoM Height (m)')
 title('Center of Mass Trajectory')
 
+%% Plot squared torque profile
+figure(2)
+tausq = t(1:indices(1)).*u(:,1:indices(1)).^2;
+plot(t(1:indices(1)),tausq(1,:))
+hold on
+plot(t(1:indices(1)),tausq(2,:))
+xlabel('time (s)')
+ylabel('Torque Squared (N^2m^2)')
+title('Torque Squared Profile')
 
-
-figure(2)  % control input profile
+%% Plot torque control profile
+figure(3)
 ctrl_t = linspace(0, ctrl.tf, 50);
 ctrl_pt_t = linspace(0, ctrl.tf, length(ctrl.T1));
 n = length(ctrl_t);
@@ -68,14 +88,14 @@ legend
 %% Plot Energy
 
 E = energy_climber(z,p);
-figure(3)
+figure(4)
 plot(t, E);
 title('Energy')
 xlabel('Time (s)')
 ylabel('Energy (J)')
 
 %% Plot Joint Angles
-figure(4)
+figure(5)
 subplot(4,1,1)
 plot(t, z(1,:))
 ylabel('y (m)')
@@ -95,8 +115,8 @@ ylabel('gamma (deg)')
 xlabel('Time (s)')
 
 %% Run the animation
-figure(5)                          % get the coordinates of the points to animate
-speed = .05;                       % set animation speed
+figure(6)                          % get the coordinates of the points to animate
+speed = .10;                       % set animation speed
 clf                                % clear fig
 animate_side(t,z,p,speed)          % run animation
 

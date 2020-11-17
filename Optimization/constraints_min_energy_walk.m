@@ -1,4 +1,4 @@
-function [cineq, ceq] = constraints_min_tausq(x,z0,p,tf0)
+function [cineq, ceq] = constraints_min_energy_walk(x,z0,p,tf0)
 % Inputs:
 % x - an array of decision variables.
 % z0 - the initial state
@@ -20,17 +20,10 @@ function [cineq, ceq] = constraints_min_tausq(x,z0,p,tf0)
 % provided using an anonymous function, just as we use anonymous
 % functions with ode45().
 
-% joint limits
-%     q2_llim = -70/360*2*pi;  % theta 1
-%     q2_ulim = 40/360*2*pi;
-%     q3_llim = -130/360*2*pi; % theta 2
-%     q3_ulim = -35/360*2*pi;            
-%     q4_llim = -25/360*2*pi;  % gamma
-%     q4_ulim = 10/360*2*pi;
 
     q2_llim = -70/360*2*pi;  % theta 1
     q2_ulim = 60/360*2*pi;
-    q3_llim = -145/360*2*pi; % theta 2
+    q3_llim = -130/360*2*pi; % theta 2
     q3_ulim = -25/360*2*pi;            
     q4_llim = -45/360*2*pi;  % gamma
     q4_ulim = 35/360*2*pi;
@@ -52,20 +45,25 @@ function [cineq, ceq] = constraints_min_tausq(x,z0,p,tf0)
     com0 = COM_climber(z0, p);
     y_com_max = max(com(2,:));
     
-%     ctrl_time = ctrl.tf - t(ind(1));       % (ctrl_tf < t_takeoff)
-    min_height = 0.15 - (y_com_max - com0(2)); 
+    ctrl_time = ctrl.tf - t(ind(1));           % (ctrl_tf < t_takeoff)
+    min_height = 0.07 - (y_com_max - com0(2)); % min height diff height
     
+    cineq = [min_th1, min_th2, max_th1, max_th2, min_gam, max_gam, min_height, ctrl_time];
+
+    % desired ending pose
+    th1end_des = 10/360*2*pi;
+    th2end_des = -25/360*2*pi;
+    tmpz = [0, th1end_des, th2end_des, 0, 0, 0, 0, 0]';
+    gamend_des = gam_solved_climber(tmpz, p);
+    ceq(1) = z(2,end) - (th1end_des);  % start and end angles (pose) same
+    ceq(2) = z(3,end) - (th2end_des);
+    ceq(3) = z(4,end) - (gamend_des(1));
     
-    cineq = [min_th1, min_th2, max_th1, max_th2, min_gam, max_gam, min_height];
+    ceq(4:6) = z(6:8,end);            % end angular velocities zero after step
+    ceq(7) = tf - tf0;               % make tf state var irrelevant
     
-    ceq(1) = ctrl.tf - t(ind(1));              % Case 1 (ctrl_tf == t_takeoff)
+    ceq(8) = ctrl.tf - t(ind(1));              % Case 1 (ctrl_tf == t_takeoff)
 %     ceq(2) = 0.15 - (y_com_max - com0(2));   % (y_COM_max moves exact amt)
-
-    disp(z
-
-    ceq(2) = z(2:4,end) - z0(2:4);  % start and end angles (pose) same
-    ceq(3) = z(6:8,end);            % end angular velocities zero after step
-    ceq(4) = tf - tf0;              % make tf state var irrelevant
 
     
 end
