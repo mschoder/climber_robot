@@ -3,8 +3,8 @@ function output_data = Experiment_trajectory( angle1_init, angle2_init, angle1_i
     
     % Figure for plotting motor data _ RIGHT
     figure(1);  clf;
-    title('Right Side Motor Data')
     a1 = subplot(421);
+    title('Right Side Motor Data')
     h1 = plot([0],[0]);
     h1.XData = []; h1.YData = [];
     ylabel('Angle 1 (rad)');
@@ -30,6 +30,7 @@ function output_data = Experiment_trajectory( angle1_init, angle2_init, angle1_i
     ylabel('Duty Cycle 1');
     
     a5 = subplot(422);
+    title('Left Side Motor Data')
     h21 = plot([0],[0]);
     h21.XData = []; h21.YData = [];
     ylabel('Angle 2 (rad)');
@@ -56,8 +57,8 @@ function output_data = Experiment_trajectory( angle1_init, angle2_init, angle1_i
     
     %%% FIGURE for Plottting LEFT MOTOR data
     figure(2);  clf;    
-    title('Left Side Motor Data')
     a1L = subplot(421);
+    title('Left Side Motor Data')
     h1L = plot([0],[0]);
     h1L.XData = []; h1L.YData = [];
     ylabel('Angle 1 (rad)');
@@ -85,6 +86,7 @@ function output_data = Experiment_trajectory( angle1_init, angle2_init, angle1_i
     
 
     a5L = subplot(422);
+    title('Left Side Motor Data')
     h21L = plot([0],[0]);
     h21L.XData = []; h21L.YData = [];
     ylabel('Angle 2 (rad)');

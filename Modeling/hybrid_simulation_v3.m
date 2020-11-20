@@ -1,4 +1,4 @@
-function [tout, zout, uout, indices] = hybrid_simulation_1motor(z0,ctrl,p,tspan)
+function [tout, zout, uout, indices] = hybrid_simulation_v3(z0,ctrl,p,tspan)
 %Inputs:
 % z0 - the initial state
 % ctrl- control structure
@@ -15,11 +15,11 @@ function [tout, zout, uout, indices] = hybrid_simulation_1motor(z0,ctrl,p,tspan)
 
     % Initialize time sequence
     t0 = tspan(1); tend = tspan(end);   % set initial and final times
-    dt = 0.001;
+    dt = 0.0001;
     num_step = floor((tend-t0)/dt);
     tout = linspace(t0, tend, num_step);
     zout(:,1) = z0;                     % initial conditions
-    uout = zeros(2,1);                  % initialize control torques
+    uout = zeros(1,1);                  % initialize control torques
     iphase_list = 1;
     max_y = z0(1);                      % initialize global max height
     
@@ -33,10 +33,10 @@ function [tout, zout, uout, indices] = hybrid_simulation_1motor(z0,ctrl,p,tspan)
         zout(:,i+1) = zout(:,i) + dz*dt;
  
         % contact constraint force - vertical on ground 
-%         zout(5:8,i+1) = discrete_impact_contact(zout(:,i+1), p);
+        zout(4:6,i+1) = discrete_impact_contact(zout(:,i+1), p);
         
         % Position update
-        zout(1:4,i+1) = zout(1:4,i) + zout(5:8,i+1)*dt;
+        zout(1:3,i+1) = zout(1:3,i) + zout(4:6,i+1)*dt;
         uout(:,i+1) = u; 
         
         % Update global max height value
@@ -48,9 +48,9 @@ function [tout, zout, uout, indices] = hybrid_simulation_1motor(z0,ctrl,p,tspan)
         %%%% IGNORE all of the iphase stuff below for now %%%%
         % Describe phase (1 = control, 2 = jump, 3 = descend)'
         eps = 0.001;
-        if(zout(1,i+1) > z0(1)+eps && zout(5,i+1)+eps > 0 && iphase == 1) % jump started
+        if(zout(1,i+1) > z0(1)+eps && zout(4,i+1)+eps > 0 && iphase == 1) % jump started
             iphase = 2;
-        elseif(zout(5,i+1) < 0 && iphase == 2) % max height reached; descending
+        elseif(zout(4,i+1) < 0 && iphase == 2) % max height reached; descending
             iphase = 3;
         end
         iphase = 1; %% TODO -- blocking
@@ -72,9 +72,9 @@ end
 
 %% Discrete Contact
 function qdot = discrete_impact_contact(z,p)
-    qdot = z(5:8);
+    qdot = z(4:6);
     rHy = z(1);
-    vHy = z(5);
+    vHy = z(4);
     kps = keypoints_climber(z,p);
     dkps = dkeypoints_climber(z,p);
     rA = kps(:,1);
@@ -84,14 +84,14 @@ function qdot = discrete_impact_contact(z,p)
     Jh = jacobian_hand_climber(z,p);
     Jhx = Jh(1,:);
     
-    % horizontal impulse force on hand -- always in effect
+%     % horizontal impulse force on hand -- always in effect
     lam_ax = 1/(Jhx * (M \ Jhx.'));
     F_Ax = lam_ax*(0 - drA(1));
     qdot = qdot + M \ Jhx.' * F_Ax;
 
     % vertical force on foot
     if(vHy < 0)     % condition: if y-vel is negative
-      Jhy  = [1, 0, 0, 0];
+      Jhy  = [1, 0, 0];
       lam_hy = 1/(Jhy * (M \ Jhy.'));
       F_hy = lam_hy*(0 - vHy);
       qdot = qdot + M \ Jhy.'* F_hy; 
@@ -104,8 +104,8 @@ function [dz, u] = dynamics_continuous(t,z,ctrl,p,iphase,max_y)
 
     u = control_laws(t,z,p,ctrl,iphase);  % get controls at this instant
     
-    A = A_climber(z,p);                 % get full A matrix
-    b = b_climber(z,u,[0; 0],p);        % get full b vector (z,u,Fc,p)
+    A = A_climber(z,p);          % get full A matrix
+    b = b_climber(z,u,p);        % get full b vector (z,u,Fc,p)
     
     QTau_Fh = 0;
 
@@ -114,7 +114,7 @@ function [dz, u] = dynamics_continuous(t,z,ctrl,p,iphase,max_y)
     
     
     rfoot = z(1);
-    drfoot = z(5);
+    drfoot = z(4);
     % horizontal spring damper on hand
 %     kps = keypoints_climber(z,p);
 %     dkps = dkeypoints_climber(z,p);
@@ -160,14 +160,14 @@ function [dz, u] = dynamics_continuous(t,z,ctrl,p,iphase,max_y)
 %     end
     
     % update joint limit torques 
-    QTauc = joint_limit_torque(z,p);
-    QTauc = [0; 0; 0; 0];  % Turned off
+%     QTauc = joint_limit_torque(z,p);
+    QTauc = [0; 0; 0];  % Turned off
     
     QTauc = QTauc + QTau_Fh + QTau_Fy + QTau_Fhy;
     
     qdd = A\(b + QTauc);      % solve system for accelerations (and possibly forces)
-    dz(1:4,1) = z(5:8);       % assign velocities to time derivative of state vector
-    dz(5:8,1) = qdd(1:4);     % assign accelerations to time derivative of state vector
+    dz(1:3,1) = z(4:6);       % assign velocities to time derivative of state vector
+    dz(4:6,1) = qdd(1:3);     % assign accelerations to time derivative of state vector
 
 end
 
@@ -242,36 +242,40 @@ function u = control_laws(t,z,p,ctrl,iphase)
 %   end
 %    %%%%%%%%%%%%%%%% PD FIXED POSITION CONTROL %%%%%%%%%%%%%%%%% 
 
-    % PD Control for motor 1 - treat as a spring
-    th1  = z(2,:);
-    dth1 = z(6,:);
-    th1_des = 0/360*2*pi;
-    k = 1;                 % stiffness (N/rad)
-    b = .1;                % damping (N/(rad/s))
-    u1 = k*(th1_des - th1) + b*(0 - dth1);
+%     % PD Control for motor 1 - treat as a spring
+%     th1  = z(2,:);
+%     dth1 = z(6,:);
+%     th1_des = 0/360*2*pi;
+%     k = 1;                 % stiffness (N/rad)
+%     b = .1;                % damping (N/(rad/s))
+%     u1 = k*(th1_des - th1) + b*(0 - dth1);
     
     % PD Control for motor 2 - simple spring
-    th2  = z(3,:);
-    dth2 = z(7,:);
-    th2_init = 120/360*2*pi;
-    th2_final = 40/360*2*pi;
+    th2  = z(2,:);
+    dth2 = z(5,:);
+    th2_init = -130/360*2*pi;
+    th2_final = -100/360*2*pi;
     ctrl_time = 1.0;
-    tstep = 0.001;
+%     th2_des = t/ctrl_time * (th2_final - th2_init) + th2_init;
     
-    th2_des = t/ctrl_time * (th2_final - th2_init) + th2_init;
+
+%%% This is where the issue is. Try to maintain an angle for theta2 ofless 
+%%% than -90deg using PD control requires a negtive control input. Trying 
+%%% to maintain an angle > than -90 deg requires a positive control input.
+%%% Try setting th2_des to -40 and -120 for test cases, and also setting z0
+%%% to the same angle (2nd state variable) in the test_hybrid_v2 file for
+%%% example. 
+
+    th2_des = -120/360*2*pi;
+%     disp(th2_des)
+%     disp(th2_des - th2)
     
-    
-    th2_des = 120/360*2*pi;
-    disp(th2_des)
-    disp(th2_des - th2)
-    
-    k = 10;                % stiffness (N/rad)
-    b = .1;                % damping (N/(rad/s))
+    k = 5;                % stiffness (N/rad)
+    b = .1;               % damping (N/(rad/s))
     u2 = k*(th2_des - th2) + b*(0 - dth2);
-    
-    u = [0; u2];
-%     u = [u1; 0];  
-    u = [0; 0];
+ 
+    u = [u2]; % u2 only since we removed u1 control for this case
+    disp(u2)
     
     %%%%%%%%%%% LOGGING %%%%%%%%%%%%%%
     

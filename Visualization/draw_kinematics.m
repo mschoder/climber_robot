@@ -4,7 +4,7 @@ function draw_kinematics()
 %     z = [0.2, -pi/2, -pi/4, 0, 0, 0, 0, 0]';
 %     z = [0.0, -30/360*2*pi, -115/360*2*pi, -pi/12, 0, 0, 0, 0]';
 %     z = [0.0, 10/360*2*pi, -115/360*2*pi, -pi/12, 0, 0, 0, 0]';
-    z = [0.0, -5/360*2*pi, -90/360*2*pi, 0, 0, 0, 0, 0]';
+    z = [0.0, -120/360*2*pi, 0/360*2*pi, 0, 0, 0, 0, 0]';
     
     % Update phi with hand constraint
     gam_solved = gam_solved_climber(z, p);

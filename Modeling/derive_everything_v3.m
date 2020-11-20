@@ -1,26 +1,22 @@
-function derive_everything() 
+function derive_everything_v3() 
 name = 'climber';
+%%% Kinematics to test out fixing theta 1
 
 % Define variables for time, generalized coordinates + derivatives, controls, and parameters 
 syms t y dy ddy th1 dth1 ddth1 th2 dth2 ddth2 tau1 tau2...
-    Fy_foot Fx_hand ...
     g stance_width rope_diam c_fric_hand c_fric_foot delta ...        
     L_AB L_BC L_CD L_DE L_CE L_EG L_DF L_FG L_FH L_GH ...    
     c_AB c_BC c_CE c_EG c_DF c_FH ...                            
     m_AB m_BC m_CE m_EG m_DF m_FH ...                            
     m_tibloc m_motor ...                                             
     I_AB I_BC I_CE I_EG I_DF I_FH I_motor I_rm1 I_rm2 Nm1 Nm2 real
-% syms phi_sym real  % temporary angle var until we can solve numerically (see diagram)
-% syms phi dphi ddphi real    % allow for open chain kinematics; solve for phi later (see diagram)
 syms gam dgam ddgam real
 
 % Group them for later use.
-q   = [y; th1; th2; gam];         % generalized coordinates
-dq  = [dy; dth1; dth2; dgam];     % first time derivatives
-ddq = [ddy; ddth1; ddth2; ddgam]; % second time derivatives
-u   = [tau1; tau2];                 % control forces and moments
-% Fc  = [Fx_foot, Fy_foot, Fx_hand, Fy_hand]; % constraint forces and moments
-Fc = [Fx_hand; Fy_foot];
+q   = [y; th2; gam];         % generalized coordinates
+dq  = [dy; dth2; dgam];      % first time derivatives
+ddq = [ddy; ddth2; ddgam];   % second time derivatives
+u   = [tau2];                % control forces and moments
 
 % Parameters
 p = [g; stance_width; rope_diam; c_fric_hand; c_fric_foot; delta; ...  % 
@@ -50,13 +46,13 @@ ddt = @(r) jacobian(r,[q;dq])*[dq;ddq];
 
 % Define vectors to key points.
 rH = y*jhat;
-rF = rH + L_FH * e1hat(gam);
-rG = rH + L_GH * e1hat(gam);
-rD = rF + L_DF * e1hat(gam + th2);
-rE = rG + L_EG * e1hat(gam + th2);
-rC = rE + L_CE * e1hat(gam);
-rB = rC + L_BC * e1hat(gam - th1);
-rA = rB + L_AB * e2hat(pi - delta - gam + th1);
+rF = rH + L_FH * e1hat(-gam);
+rG = rH + L_GH * e1hat(-gam);
+rD = rF + L_DF * e1hat(-gam - th2);
+rE = rG + L_EG * e1hat(-gam - th2);
+rC = rE + L_CE * e1hat(-gam);
+rB = rC + L_BC * e1hat(-gam);
+rA = rB + L_AB * e2hat(pi - delta + gam);
 
 % Solve for gam given fixed rA(x) = 0 constraint; for use externally
 gam_solved = solve(rA(1) == 0, gam, 'Real', true);
@@ -64,12 +60,12 @@ gam_solved = simplify(gam_solved(2));   % second soln is correct (trial & error)
 dgam_solved = simplify(ddt(gam_solved));
 
 % Define COMs
-rcmFH = rH + c_FH * e1hat(gam);
-rcmDF = rF + c_DF * e1hat(gam + th2);
-rcmEG = rG + c_EG * e1hat(gam + th2);
-rcmCE = rE + c_CE * e1hat(gam);
-rcmBC = rC + c_BC * e1hat(gam - th1);
-rcmAB = rB + c_AB * e2hat(pi - delta - gam + th1);
+rcmFH = rH + c_FH * e1hat(-gam);
+rcmDF = rF + c_DF * e1hat(-gam - th2);
+rcmEG = rG + c_EG * e1hat(-gam - th2);
+rcmCE = rE + c_CE * e1hat(-gam);
+rcmBC = rC + c_BC * e1hat(-gam);
+rcmAB = rB + c_AB * e2hat(pi - delta + gam);
 
 % Take time derivatives of vectors for kinetic energy terms
 drH = ddt(rH);
@@ -106,11 +102,11 @@ M2Q = @(M,w) simplify(jacobian(w,dq)'*(M));
 % Define kinetic energies. See Lecture 6 formula for kinetic energy
 % of a rigid body. Negative bc defined via RHR
 omegaFH = -dgam;
-omegaDF = -dgam - dth2;
-omegaEG = -dgam - dth2;
+omegaDF = -(dgam + dth2);
+omegaEG = -(dgam + dth2);
 omegaCE = -dgam;
-omegaBC = -dgam + dth1;
-omegaAB = -dgam + dth1;
+omegaBC = -dgam;
+omegaAB = -dgam;
 
 % Kinetic energy
 T_FH = (1/2) * m_FH * dot(drcmFH, drcmFH) + (1/2) * I_FH * omegaFH^2;
@@ -121,8 +117,8 @@ T_BC = (1/2) * m_BC * dot(drcmBC, drcmBC) + (1/2) * I_BC * omegaBC^2;
 T_AB = (1/2) * m_AB * dot(drcmAB, drcmAB) + (1/2) * I_AB * omegaAB^2;
 T_m1 = (1/2) * m_motor * dot(drC, drC) + (1/2) * I_motor * omegaBC^2;
 T_m2 = (1/2) * m_motor * dot(drE, drE) + (1/2) * I_motor * omegaCE^2;
-T_r1 = (1/2) * I_rm1 * ((dgam - dth1) + Nm1*dth1)^2;
-T_r2 = (1/2) * I_rm2 * (dgam + Nm2*dth2)^2;
+% T_r1 = (1/2) * I_rm1 * ((dgam) + 0)^2;
+% T_r2 = (1/2) * I_rm2 * (dgam + Nm2*dth2)^2;
 T_r1 = 0;
 T_r2 = 0;
 
@@ -147,13 +143,13 @@ V = simplify(V_FH + V_DF + V_EG + V_CE + V_BC + V_AB + V_m1 + V_m2);
 
 % Define contributions to generalized forces.  See Lecture 6 formulas for
 % contributions to generalized forces.
-QF1 = F2Q(Fy_foot*jhat,rH);              % y-dir contact force at foot
-QF2 = F2Q(Fx_hand*ihat,rA);              % x-dir contact force at hand
+% QF1 = F2Q(Fy_foot*jhat,rH);              % y-dir contact force at foot
+% QF2 = F2Q(Fx_hand*ihat,rA);              % x-dir contact force at hand
 
-Qtau1 = M2Q(tau1*khat, omegaBC*khat);  % motor 1 @ point C
-Qtau2 = M2Q(tau2*khat, omegaCE*khat);  % motor 2 @ point E
+% Qtau1 = M2Q(tau1*khat, omegaBC*khat);  % motor 1 @ point C
+Qtau2 = M2Q(tau2*khat, omegaBC*khat);  % motor 2 @ point E
 
-Qtau = Qtau1 + Qtau2;
+Qtau = Qtau2;
 
 % Sum kinetic energy terms, potential energy terms, and generalized force
 % contributions.
@@ -190,8 +186,8 @@ Corr_Joint_Sp = simplify( eom + Q - Grav_Joint_Sp - A*ddq);
 
 %%% Write functions to evaluate dynamics, etc...
 z = sym(zeros(length([q;dq]),1)); % initialize the state vector
-z(1:4,1) = q;  
-z(5:8,1) = dq;
+z(1:3,1) = q;  
+z(4:6,1) = dq;
 
 %%
 
@@ -201,7 +197,7 @@ directory = './AutoDerived/';  % changed to run from parent dir
 % Write a function to evaluate the A matrix of the system given the current state and parameters
 matlabFunction(A,'file',[directory 'A_' name],'vars',{z p});
 % Write a function to evaluate the b vector of the system given the current state, current control, and parameters
-matlabFunction(b,'file',[directory 'b_' name],'vars',{z u Fc p});
+matlabFunction(b,'file',[directory 'b_' name],'vars',{z u p});
 
 matlabFunction(keypoints,'file',[directory 'keypoints_' name],'vars',{z p});
 matlabFunction(dkeypoints,'file',[directory 'dkeypoints_' name],'vars',{z p});

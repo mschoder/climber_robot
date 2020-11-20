@@ -11,10 +11,25 @@
 % pts_foot =   [-0.0960   -0.0960   -0.0960   -0.0960   -0.0960   -0.0960   -0.0960   -0.0960
 %    -0.1400   -0.1271   -0.1143   -0.1014   -0.0886   -0.0757   -0.0629   -0.0500];
 % pts_foot = [-0.0960   -0.0960   -0.0960   -0.0960   -0.0960   -0.0960   -0.0960   -0.0960
-% -0.1400   -0.0767   -0.0133    0.05000   0.0500   -0.0500   -0.1500   -0.2500];
+% % -0.1400   -0.0767   -0.0133    0.05000   0.0500   -0.0500   -0.1500   -0.2500];
 
-pts_foot = [-0.0960   -0.0960   -0.0960   -0.0960   -0.0960   -0.0960   -0.0960   -0.0960
--0.1400   -0.0700         0   -0.0700   -0.1400   -0.2100   -0.2500   -0.1400];
+% pts_foot = [-0.0960   -0.0960   -0.0960   -0.0960   -0.0960   -0.0960   -0.0960   -0.0960
+% -0.1400   -0.0700        -0.04   -0.0700   -0.1400   -0.2100   -0.2500   -0.1400];
+% pts_foot(2,2:7) = pts_foot(2,2:7)*1.0;
+
+initial_foot_pts = [ -0.096 ; -0.14];
+delta_up = 0.15;
+delta_down = 0.15;
+%Set up Bezier curve for right foot points
+a = linspace(initial_foot_pts(2), initial_foot_pts(2) + delta_up,3);
+a = horzcat( a , flip(a(1:length(a)-1)) );
+b = linspace(initial_foot_pts(2), initial_foot_pts(2) - delta_down,3);
+b = horzcat( b , flip(b(1:length(b)-1)) );
+pts_foot = [ initial_foot_pts(1)*ones(1,9) ;  horzcat(a,b(2:length(b)))];
+pts_foot = horzcat(pts_foot(:,1:4),pts_foot(:,6:9));
+
+% pts_foot = [-0.0960   -0.0960   -0.0960   -0.0960   -0.0960   -0.0960   -0.0960   -0.0960
+% -0.1400   -0.0700      0  -0.0700   -0.1400   -0.2100   -0.2500   -0.1400];
 
 % const_point = [-0.096; -0.133]; 
 % pts_foot = repmat(const_point,1,8);
@@ -26,17 +41,17 @@ angle1_initL = 0;
 angle2_initL = pi/2; %% Flipped bc of motor orientation
 
 % Total experiment time is buffer,trajectory,buffer
-phase_flag        = 1;   % 0 == in-phase, 1 == out-of-phase
-num_cycles        = 4;
-traj_time         = 1.0;
+phase_flag        = 0;   % 0 == in-phase, 1 == out-of-phase
+num_cycles        = 8;
+traj_time         = 2.5;
 pre_buffer_time   = 1; % this should be 0 for constant points, 2 for Bezier trajectories
 post_buffer_time  = 0.2;
 
 % Gains for impedance controller
 % If a gain is not being used in your Mbed code, set it to zero
 % For joint space control, use K_xx for K1, K_yy for K2, D_xx for D1, D_yy for D2
-gains.K_xx = 65;
-gains.K_yy = 75;
+gains.K_xx = 65; %60
+gains.K_yy = 75; %70
 gains.K_xy = 0;
 
 gains.D_xx = 1.0;
@@ -62,6 +77,20 @@ xdes = -output_data(:,16); % desired foot position in X (negative due to directi
 ydes = output_data(:,17); % desired foot position in Y
 xdesL = -output_data(:,34); % desired foot position in X (negative due to direction motors are mounted)
 ydesL = output_data(:,35); % desired foot position in Y
+
+current = [output_data(:,3) , output_data(:,8) , output_data(:,21) , output_data(:,26)]; 
+           %[current1R , current2R , current1L , current2L]
+
+%% Save workspace
+if phase_flag
+    gait = "out_of_phase";
+else
+    gait = "in_phase";
+end
+
+filepath = "/Users/mschoder/Dropbox (MIT)/2020_Fall/2_740_BIR/project_code/testing_data/";
+filename = strcat( filepath , gait , "traj" , num2str(traj_time) , "s_NumCycles_" , num2str(num_cycles) , '.mat');
+save(filename)
 
 %% Plot foot vs desired
 figure(5); clf;  %% RIGHT LEG - Desired vs Actual

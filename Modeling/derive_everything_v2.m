@@ -1,4 +1,4 @@
-function derive_everything() 
+function derive_everything_v2() 
 name = 'climber';
 
 % Define variables for time, generalized coordinates + derivatives, controls, and parameters 
@@ -21,6 +21,7 @@ ddq = [ddy; ddth1; ddth2; ddgam]; % second time derivatives
 u   = [tau1; tau2];                 % control forces and moments
 % Fc  = [Fx_foot, Fy_foot, Fx_hand, Fy_hand]; % constraint forces and moments
 Fc = [Fx_hand; Fy_foot];
+gam = 0; dgam = 0; ddgam = 0;
 
 % Parameters
 p = [g; stance_width; rope_diam; c_fric_hand; c_fric_foot; delta; ...  % 
@@ -50,26 +51,26 @@ ddt = @(r) jacobian(r,[q;dq])*[dq;ddq];
 
 % Define vectors to key points.
 rH = y*jhat;
-rF = rH + L_FH * e1hat(gam);
-rG = rH + L_GH * e1hat(gam);
-rD = rF + L_DF * e1hat(gam + th2);
-rE = rG + L_EG * e1hat(gam + th2);
-rC = rE + L_CE * e1hat(gam);
-rB = rC + L_BC * e1hat(gam - th1);
-rA = rB + L_AB * e2hat(pi - delta - gam + th1);
+rF = rH + L_FH * e1hat(-th1);
+rG = rH + L_GH * e1hat(-th1);
+rD = rF + L_DF * e1hat(-th1 - th2);
+rE = rG + L_EG * e1hat(-th1 - th2);
+rC = rE + L_CE * e1hat(-th1);
+rB = rC + L_BC * e1hat(0);
+rA = rB + L_AB * e2hat(pi - delta);
 
 % Solve for gam given fixed rA(x) = 0 constraint; for use externally
-gam_solved = solve(rA(1) == 0, gam, 'Real', true);
-gam_solved = simplify(gam_solved(2));   % second soln is correct (trial & error)
-dgam_solved = simplify(ddt(gam_solved));
+% gam_solved = solve(rA(1) == 0, gam, 'Real', true);
+% gam_solved = simplify(gam_solved(2));   % second soln is correct (trial & error)
+% dgam_solved = simplify(ddt(gam_solved));
 
 % Define COMs
-rcmFH = rH + c_FH * e1hat(gam);
-rcmDF = rF + c_DF * e1hat(gam + th2);
-rcmEG = rG + c_EG * e1hat(gam + th2);
-rcmCE = rE + c_CE * e1hat(gam);
-rcmBC = rC + c_BC * e1hat(gam - th1);
-rcmAB = rB + c_AB * e2hat(pi - delta - gam + th1);
+rcmFH = rH + c_FH * e1hat(-th1);
+rcmDF = rF + c_DF * e1hat(-th1 - th2);
+rcmEG = rG + c_EG * e1hat(-th1 - th2);
+rcmCE = rE + c_CE * e1hat(-th1);
+rcmBC = rC + c_BC * e1hat(0);
+rcmAB = rB + c_AB * e2hat(pi - delta);
 
 % Take time derivatives of vectors for kinetic energy terms
 drH = ddt(rH);
@@ -105,12 +106,12 @@ M2Q = @(M,w) simplify(jacobian(w,dq)'*(M));
 
 % Define kinetic energies. See Lecture 6 formula for kinetic energy
 % of a rigid body. Negative bc defined via RHR
-omegaFH = -dgam;
-omegaDF = -dgam - dth2;
-omegaEG = -dgam - dth2;
-omegaCE = -dgam;
-omegaBC = -dgam + dth1;
-omegaAB = -dgam + dth1;
+omegaFH = dth1;
+omegaDF = dth1 + dth2;
+omegaEG = dth1 + dth2;
+omegaCE = dth1;
+omegaBC = 0;
+omegaAB = 0;
 
 % Kinetic energy
 T_FH = (1/2) * m_FH * dot(drcmFH, drcmFH) + (1/2) * I_FH * omegaFH^2;
@@ -121,8 +122,8 @@ T_BC = (1/2) * m_BC * dot(drcmBC, drcmBC) + (1/2) * I_BC * omegaBC^2;
 T_AB = (1/2) * m_AB * dot(drcmAB, drcmAB) + (1/2) * I_AB * omegaAB^2;
 T_m1 = (1/2) * m_motor * dot(drC, drC) + (1/2) * I_motor * omegaBC^2;
 T_m2 = (1/2) * m_motor * dot(drE, drE) + (1/2) * I_motor * omegaCE^2;
-T_r1 = (1/2) * I_rm1 * ((dgam - dth1) + Nm1*dth1)^2;
-T_r2 = (1/2) * I_rm2 * (dgam + Nm2*dth2)^2;
+T_r1 = (1/2) * I_rm1 * ((0) + Nm1*dth1)^2;
+T_r2 = (1/2) * I_rm2 * (-dth1 + Nm2*dth2)^2;
 T_r1 = 0;
 T_r2 = 0;
 
@@ -222,8 +223,8 @@ matlabFunction(E,'file',[directory 'energy_' name],'vars',{z p});
 % matlabFunction(phi_sol,'file',[directory 'phi_solved_' name],'vars',{z p});
 
 % Write a function to evaluate gam and dgam with the hand constraint x=0
-gam_sol = [gam_solved dgam_solved]';
-matlabFunction(gam_sol,'file',[directory 'gam_solved_' name],'vars',{z p});
+% gam_sol = [gam_solved dgam_solved]';
+% matlabFunction(gam_sol,'file',[directory 'gam_solved_' name],'vars',{z p});
 
 % Write a function to eval jacobian at the hand (point A)
 jA = jacobian(rA, q);
